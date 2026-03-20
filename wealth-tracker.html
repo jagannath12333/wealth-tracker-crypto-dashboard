@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Finflow — Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f3ef;--surface:#fff;--border:#e4e3de;--border2:#d0cfc9;
+  --t1:#18181b;--t2:#52525b;--t3:#a1a1aa;
+  --blue:#2563eb;--blue-lt:#eff4ff;--blue-dk:#1d4ed8;
+  --green:#16a34a;--green-lt:#f0fdf4;
+  --red:#dc2626;--red-lt:#fff5f5;
+  --r:12px;--rs:8px;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 16px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;font-size:14px;line-height:1.5}
+.shell{display:grid;grid-template-columns:300px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+.topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;height:58px;gap:20px;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:9px;font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;color:var(--t1);letter-spacing:-.3px}
+.brand-mark{width:28px;height:28px;background:var(--t1);border-radius:7px;display:grid;place-items:center;font-size:13px;color:#fff}
+.topbar-fill{flex:1}
+.topbar-date{font-size:12px;color:var(--t3);font-weight:500;background:var(--bg);padding:5px 12px;border-radius:20px;border:1px solid var(--border)}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 20px;overflow-y:auto}
+.slabel{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);margin-bottom:14px;margin-top:4px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:3px;gap:3px;margin-bottom:18px}
+.sbtn{border:none;background:transparent;padding:8px 0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;color:var(--t2);transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px}
+.sbtn.ai{background:var(--surface);color:var(--green);box-shadow:var(--sh)}
+.sbtn.ae{background:var(--surface);color:var(--red);box-shadow:var(--sh)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px;letter-spacing:.3px}
+.field input,.field select{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);color:var(--t1);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;transition:border-color .15s,background .15s,box-shadow .15s;-webkit-appearance:none}
+.field input:focus,.field select:focus{outline:none;background:var(--surface);border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.field input.herr{border-color:var(--red)}
+.ferr{font-size:11px;color:var(--red);margin-top:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-add{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,transform .12s;margin-top:6px}
+.btn-add:hover{background:var(--blue-dk)}.btn-add:active{transform:scale(.98)}
+.divider{height:1px;background:var(--border);margin:22px -20px;width:calc(100% + 40px)}
+.mstat{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.mstat:last-child{border:none}
+.mstat-l{font-size:12px;color:var(--t2)}.mstat-v{font-family:'Outfit',sans-serif;font-size:14px;font-weight:600}
+.main{padding:26px 26px 60px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--sh);transition:box-shadow .2s;animation:up .35s ease both}
+.scard:hover{box-shadow:var(--sh2)}
+.scard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.scard-lbl{font-size:12px;font-weight:600;color:var(--t2)}
+.scard-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px}
+.scard.inc .scard-ico{background:var(--green-lt)}.scard.exp .scard-ico{background:var(--red-lt)}.scard.bal .scard-ico{background:var(--blue-lt)}
+.scard-amt{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px}
+.scard.inc .scard-amt{color:var(--green)}.scard.exp .scard-amt{color:var(--red)}
+.scard.bal .scard-amt.pos{color:var(--blue)}.scard.bal .scard-amt.neg{color:var(--red)}
+.scard-sub{font-size:11px;color:var(--t3);margin-top:4px}
+.progbar{height:3px;background:var(--border);border-radius:2px;margin-top:14px;overflow:hidden}
+.progfill{height:100%;border-radius:2px;transition:width .6s ease}
+.crow{display:grid;grid-template-columns:1fr 1.65fr;gap:14px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;animation:up .4s ease .08s both}
+.card-head{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-ttl{font-family:'Outfit',sans-serif;font-size:14px;font-weight:600}
+.card-body{padding:18px 20px}
+.cwrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.ccanvas{width:160px;height:160px;flex-shrink:0}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:120px}
+.leg-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2)}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.leg-pct{margin-left:auto;font-weight:600;color:var(--t1);font-size:12px;font-family:'Outfit',sans-serif}
+.toolbar{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.srchwrap{flex:1;display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:0 10px;gap:7px}
+.srch-ico{color:var(--t3);flex-shrink:0}
+.srch-input{border:none;background:transparent;color:var(--t1);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;padding:8px 0;width:100%}
+.srch-input:focus{outline:none}.srch-input::placeholder{color:var(--t3)}
+.csel{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:7px 24px 7px 10px;color:var(--t2);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a1a1aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.ttbl{width:100%;border-collapse:collapse}
+.ttbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:10px 20px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
+.ttbl th.ra{text-align:right}
+.ttbl td{padding:13px 20px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ttbl tbody tr:last-child td{border-bottom:none}
+.ttbl tbody tr{transition:background .12s}.ttbl tbody tr:hover{background:#fafaf8}
+.ticell{display:flex;align-items:center;gap:11px}
+.ticon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:14px;flex-shrink:0;border:1px solid var(--border)}
+.tname{font-weight:600;font-size:13px}.tnote{font-size:11px;color:var(--t3);margin-top:1px}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.chip.income{background:var(--green-lt);color:var(--green)}.chip.expense{background:var(--red-lt);color:var(--red)}
+.cattag{font-size:11px;color:var(--t3);background:var(--bg);padding:3px 8px;border-radius:20px;border:1px solid var(--border)}
+.tdate{font-size:11px;color:var(--t3)}
+.tamt{font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;text-align:right}
+.tamt.income{color:var(--green)}.tamt.expense{color:var(--red)}
+.row-acts{display:flex;gap:4px;justify-content:flex-end;opacity:0;transition:opacity .15s}
+.ttbl tbody tr:hover .row-acts{opacity:1}
+.abtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:grid;place-items:center;font-size:11px;color:var(--t3);transition:all .12s}
+.abtn.edit:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.abtn.del:hover{border-color:var(--red);color:var(--red);background:var(--red-lt)}
+.empty{padding:52px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.empty-ico{font-size:36px;opacity:.35}.empty-h{font-family:'Outfit',sans-serif;font-size:15px;font-weight:600}
+.empty-p{font-size:12px;color:var(--t3);max-width:220px;line-height:1.6}
+.pill{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--t2);cursor:pointer;transition:all .15s}
+.pill:hover{border-color:var(--blue);color:var(--blue)}
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(10,10,15,.4);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:400px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,.15);transform:translateY(12px);transition:transform .22s}
+.overlay.open .modal{transform:translateY(0)}
+.modal-h{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px}
+.mfooter{display:flex;gap:8px;margin-top:18px}
+.btn-cancel{flex:1;padding:9px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);color:var(--t2);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s}
+.btn-cancel:hover{background:var(--border)}
+.btn-save{flex:1;padding:9px;background:var(--blue);border:none;border-radius:var(--rs);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s}
+.btn-save:hover{background:var(--blue-dk)}
+.tarea{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;background:var(--t1);color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:slideup .25s ease;max-width:270px}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a1a1aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+@media(max-width:960px){.shell{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--border)}.strip{grid-template-columns:1fr 1fr}.crow{grid-template-columns:1fr}}
+@media(max-width:560px){.strip{grid-template-columns:1fr}.topbar{padding:0 16px}.main{padding:16px 14px 60px}}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">F</div>Finflow</div>
+  <div class="topbar-fill"></div>
+  <div class="topbar-date" id="topDate"></div>
+</header>
+<aside class="sidebar">
+  <div class="slabel">New Transaction</div>
+  <div class="seg">
+    <button class="sbtn ai" id="btnInc" onclick="setType('income')">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 10V2M2.5 5.5L6 2l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Income
+    </button>
+    <button class="sbtn" id="btnExp" onclick="setType('expense')">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M9.5 6.5L6 10 2.5 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Expense
+    </button>
+  </div>
+  <div class="field"><label>Title</label><input id="fTitle" type="text" placeholder="e.g. Monthly salary, Groceries…" maxlength="80"/><div class="ferr" id="errT"></div></div>
+  <div class="row2">
+    <div class="field"><label>Amount (&#8377;)</label><input id="fAmt" type="number" placeholder="0.00" min="0.01" step="0.01"/><div class="ferr" id="errA"></div></div>
+    <div class="field"><label>Category</label><select id="fCat"></select></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>Date</label><input id="fDate" type="date"/></div>
+    <div class="field"><label>Note</label><input id="fNote" type="text" placeholder="Optional…" maxlength="100"/></div>
+  </div>
+  <button class="btn-add" onclick="addTxn()">Add Transaction</button>
+  <div class="divider"></div>
+  <div class="slabel">Quick Stats</div>
+  <div class="mstat"><span class="mstat-l">Total entries</span><span class="mstat-v" id="qs1">0</span></div>
+  <div class="mstat"><span class="mstat-l">Expenses this month</span><span class="mstat-v" id="qs2">&#8377;0</span></div>
+  <div class="mstat"><span class="mstat-l">Avg. expense</span><span class="mstat-v" id="qs3">&#8377;0</span></div>
+  <div class="mstat"><span class="mstat-l">Savings rate</span><span class="mstat-v" id="qs4">&#8212;</span></div>
+</aside>
+<main class="main">
+  <div class="strip">
+    <div class="scard inc">
+      <div class="scard-top"><span class="scard-lbl">Total Income</span><div class="scard-ico">&#8593;</div></div>
+      <div class="scard-amt" id="cInc">&#8377;0.00</div>
+      <div class="scard-sub" id="cIncS">0 entries</div>
+      <div class="progbar"><div class="progfill" id="pInc" style="width:0;background:var(--green)"></div></div>
+    </div>
+    <div class="scard exp">
+      <div class="scard-top"><span class="scard-lbl">Total Expenses</span><div class="scard-ico">&#8595;</div></div>
+      <div class="scard-amt" id="cExp">&#8377;0.00</div>
+      <div class="scard-sub" id="cExpS">0 entries</div>
+      <div class="progbar"><div class="progfill" id="pExp" style="width:0;background:var(--red)"></div></div>
+    </div>
+    <div class="scard bal">
+      <div class="scard-top"><span class="scard-lbl">Net Balance</span><div class="scard-ico">&#9675;</div></div>
+      <div class="scard-amt" id="cBal">&#8377;0.00</div>
+      <div class="scard-sub" id="cBalS">No transactions yet</div>
+      <div class="progbar"><div class="progfill" id="pBal" style="width:0;background:var(--blue)"></div></div>
+    </div>
+  </div>
+  <div class="crow">
+    <div class="card">
+      <div class="card-head"><span class="card-ttl">Expenses by Category</span><button class="pill" id="ctBtn" onclick="toggleChart()">Bar view</button></div>
+      <div class="card-body" id="chartBody"><div class="empty"><div class="empty-ico">&#128202;</div><div class="empty-h">No expense data</div><div class="empty-p">Add an expense to see the breakdown chart.</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-ttl">Transactions <span id="tcnt" style="color:var(--t3);font-size:12px;font-weight:400;"></span></span></div>
+      <div class="toolbar">
+        <div class="srchwrap">
+          <svg class="srch-ico" width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.4"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <input class="srch-input" id="srchQ" type="text" placeholder="Search transactions…" oninput="renderTxns()"/>
+        </div>
+        <select class="csel" id="fType" onchange="renderTxns()"><option value="all">All types</option><option value="income">Income</option><option value="expense">Expense</option></select>
+        <select class="csel" id="fCatF" onchange="renderTxns()"><option value="all">All categories</option></select>
+      </div>
+      <div id="txnWrap"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="overlay" id="editOv" onclick="maybeClose(event)">
+  <div class="modal">
+    <div class="modal-h">Edit Transaction</div>
+    <input type="hidden" id="eId"/>
+    <div class="seg" style="margin-bottom:16px;">
+      <button class="sbtn" id="eBtnI" onclick="setET('income')">&#8593; Income</button>
+      <button class="sbtn" id="eBtnE" onclick="setET('expense')">&#8595; Expense</button>
+    </div>
+    <div class="field"><label>Title</label><input id="eTitle" type="text"/></div>
+    <div class="row2">
+      <div class="field"><label>Amount (&#8377;)</label><input id="eAmt" type="number" step="0.01"/></div>
+      <div class="field"><label>Category</label><select id="eCat"></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Date</label><input id="eDate" type="date"/></div>
+      <div class="field"><label>Note</label><input id="eNote" type="text"/></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn-cancel" onclick="closeEdit()">Cancel</button>
+      <button class="btn-save" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="tarea" id="tarea"></div>
+
+<script>
+const KEY='finflow_v1';
+const CATS={
+  income:['Salary','Freelance','Business','Investment','Rental','Gift','Bonus','Other Income'],
+  expense:['Food & Dining','Rent / Housing','Transport','Shopping','Healthcare','Entertainment','Education','Utilities','Subscriptions','Travel','Insurance','Other']
+};
+const ICONS={
+  'Salary':'💼','Freelance':'💻','Business':'🏢','Investment':'📈','Rental':'🏠','Gift':'🎁','Bonus':'🏆','Other Income':'💰',
+  'Food & Dining':'🍽️','Rent / Housing':'🏠','Transport':'🚗','Shopping':'🛍️','Healthcare':'🏥','Entertainment':'🎬',
+  'Education':'📚','Utilities':'💡','Subscriptions':'📱','Travel':'✈️','Insurance':'🛡️','Other':'📦'
+};
+const PAL=['#2563eb','#16a34a','#dc2626','#d97706','#7c3aed','#0891b2','#be185d','#15803d','#b45309','#4f46e5','#0f766e','#c2410c'];
+let txns=[],curType='income',editType='income',chart=null,chartMode='doughnut';
+
+(function(){
+  document.getElementById('topDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
+  try{txns=JSON.parse(localStorage.getItem(KEY))||[];}catch{txns=[];}
+  fillSel('fCat',CATS.income);fillSel('eCat',CATS.income);update();
+})();
+
+function fmt(n){const a=Math.abs(n),s=n<0?'-':'';if(a>=1e7)return s+'₹'+(a/1e7).toFixed(2)+' Cr';if(a>=1e5)return s+'₹'+(a/1e5).toFixed(2)+' L';return s+'₹'+a.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(txns));}catch{toast('Storage error','⚠');}}
+function fillSel(id,list){document.getElementById(id).innerHTML=list.map(c=>`<option>${c}</option>`).join('');}
+function catClr(cat){const a=[...new Set(txns.map(t=>t.category))];return PAL[a.indexOf(cat)%PAL.length]||PAL[0];}
+
+function setType(t){curType=t;document.getElementById('btnInc').className='sbtn'+(t==='income'?' ai':'');document.getElementById('btnExp').className='sbtn'+(t==='expense'?' ae':'');fillSel('fCat',CATS[t]);}
+function setET(t){editType=t;document.getElementById('eBtnI').className='sbtn'+(t==='income'?' ai':'');document.getElementById('eBtnE').className='sbtn'+(t==='expense'?' ae':'');fillSel('eCat',CATS[t]);}
+
+function addTxn(){
+  const title=document.getElementById('fTitle').value.trim();
+  const rawA=document.getElementById('fAmt').value.trim();
+  const cat=document.getElementById('fCat').value;
+  const date=document.getElementById('fDate').value;
+  const note=document.getElementById('fNote').value.trim();
+  let ok=true;clearE();
+  if(!title){showE('fTitle','errT','Title is required.');ok=false;}
+  const amt=parseFloat(rawA);
+  if(!rawA||isNaN(amt)||amt<=0){showE('fAmt','errA','Enter a valid amount.');ok=false;}
+  else if(amt>1e11){showE('fAmt','errA','Amount too large.');ok=false;}
+  if(!ok)return;
+  txns.unshift({id:Date.now()+Math.random(),title,amount:+amt.toFixed(2),category:cat,type:curType,date,note});
+  save();update();toast('Transaction added','✓');
+  document.getElementById('fTitle').value='';document.getElementById('fAmt').value='';document.getElementById('fNote').value='';
+}
+function clearE(){['fTitle','fAmt'].forEach(i=>document.getElementById(i).classList.remove('herr'));['errT','errA'].forEach(i=>document.getElementById(i).textContent='');}
+function showE(inp,err,msg){document.getElementById(inp).classList.add('herr');document.getElementById(err).textContent=msg;}
+function delTxn(id){txns=txns.filter(t=>String(t.id)!==String(id));save();update();toast('Deleted','🗑');}
+
+function openEdit(id){
+  const t=txns.find(t=>String(t.id)===String(id));if(!t)return;
+  editType=t.type;
+  document.getElementById('eId').value=t.id;document.getElementById('eTitle').value=t.title;
+  document.getElementById('eAmt').value=t.amount;document.getElementById('eDate').value=t.date||'';document.getElementById('eNote').value=t.note||'';
+  setET(editType);document.getElementById('eCat').value=t.category;
+  document.getElementById('editOv').classList.add('open');
+}
+function closeEdit(){document.getElementById('editOv').classList.remove('open');}
+function maybeClose(e){if(e.target.id==='editOv')closeEdit();}
+function saveEdit(){
+  const id=document.getElementById('eId').value;
+  const title=document.getElementById('eTitle').value.trim();
+  const amt=parseFloat(document.getElementById('eAmt').value);
+  const cat=document.getElementById('eCat').value;
+  const date=document.getElementById('eDate').value;
+  const note=document.getElementById('eNote').value.trim();
+  if(!title||isNaN(amt)||amt<=0){toast('Fill required fields','⚠');return;}
+  if(amt>1e11){toast('Amount too large','⚠');return;}
+  const i=txns.findIndex(t=>String(t.id)===String(id));if(i<0)return;
+  txns[i]={...txns[i],title,amount:+amt.toFixed(2),category:cat,date,note,type:editType};
+  save();update();closeEdit();toast('Updated','✓');
+}
+
+function update(){updateCards();updateSidebar();renderChart();renderTxns();syncCatF();}
+
+function updateCards(){
+  const inc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const bal=inc-exp;
+  const ic=txns.filter(t=>t.type==='income').length;
+  const ec=txns.filter(t=>t.type==='expense').length;
+  document.getElementById('cInc').textContent=fmt(inc);
+  document.getElementById('cExp').textContent=fmt(exp);
+  const bEl=document.getElementById('cBal');
+  bEl.textContent=(bal>=0?'+':'')+fmt(bal);
+  bEl.className='scard-amt'+(bal>0?' pos':bal<0?' neg':'');
+  document.getElementById('cIncS').textContent=ic+' entr'+(ic===1?'y':'ies');
+  document.getElementById('cExpS').textContent=ec+' entr'+(ec===1?'y':'ies');
+  document.getElementById('cBalS').textContent=!txns.length?'No transactions yet':inc>0?`${Math.min(100,Math.max(0,((inc-exp)/inc*100))).toFixed(0)}% of income saved`:'Only expenses recorded';
+  const tot=inc+exp||1;
+  document.getElementById('pInc').style.width=Math.min(100,inc/tot*100)+'%';
+  document.getElementById('pExp').style.width=Math.min(100,exp/tot*100)+'%';
+  document.getElementById('pBal').style.width=inc>0?Math.min(100,Math.max(0,bal/inc*100))+'%':'0%';
+}
+
+function updateSidebar(){
+  const now=new Date(),mo=now.getMonth(),yr=now.getFullYear();
+  const inMo=txns.filter(t=>{const d=new Date(t.date+'T00:00:00');return d.getMonth()===mo&&d.getFullYear()===yr;});
+  const moExp=inMo.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const allE=txns.filter(t=>t.type==='expense');
+  const avgE=allE.length?allE.reduce((s,t)=>s+t.amount,0)/allE.length:0;
+  const inc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const rate=inc>0?((inc-exp)/inc*100):null;
+  document.getElementById('qs1').textContent=txns.length;
+  document.getElementById('qs2').textContent=fmt(moExp);
+  document.getElementById('qs3').textContent=avgE>0?fmt(avgE):'₹0.00';
+  document.getElementById('qs4').textContent=rate!==null?rate.toFixed(1)+'%':'—';
+}
+
+function toggleChart(){chartMode=chartMode==='doughnut'?'bar':'doughnut';document.getElementById('ctBtn').textContent=chartMode==='doughnut'?'Bar view':'Pie view';renderChart();}
+
+function renderChart(){
+  const expenses=txns.filter(t=>t.type==='expense');
+  const body=document.getElementById('chartBody');
+  if(!expenses.length){if(chart){chart.destroy();chart=null;}body.innerHTML='<div class="empty"><div class="empty-ico">📊</div><div class="empty-h">No expense data</div><div class="empty-p">Add an expense to see the breakdown chart.</div></div>';return;}
+  const map={};expenses.forEach(t=>{map[t.category]=(map[t.category]||0)+t.amount;});
+  const labels=Object.keys(map),data=Object.values(map);
+  const total=data.reduce((a,b)=>a+b,0);
+  const colors=labels.map((_,i)=>PAL[i%PAL.length]);
+  if(chartMode==='doughnut'){
+    body.innerHTML='<div class="cwrap"><div class="ccanvas"><canvas id="myC"></canvas></div><div class="legend" id="leg"></div></div>';
+    document.getElementById('leg').innerHTML=labels.map((l,i)=>`<div class="leg-row"><div class="leg-dot" style="background:${colors[i]}"></div><span>${esc(l)}</span><span class="leg-pct">${((data[i]/total)*100).toFixed(1)}%</span></div>`).join('');
+    if(chart)chart.destroy();
+    chart=new Chart(document.getElementById('myC'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:6}]},options:{cutout:'66%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.parsed)+' ('+((c.parsed/total)*100).toFixed(1)+'%)'}}},animation:{duration:500}}});
+  }else{
+    body.innerHTML='<canvas id="myC" style="max-height:210px"></canvas>';
+    if(chart)chart.destroy();
+    chart=new Chart(document.getElementById('myC'),{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:5,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.parsed.y)}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#a1a1aa',font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#a1a1aa',font:{size:10},callback:v=>'₹'+v.toLocaleString('en-IN')}}},animation:{duration:400}}});
+  }
+}
+
+function syncCatF(){
+  const all=[...new Set(txns.map(t=>t.category))];
+  const sel=document.getElementById('fCatF'),cur=sel.value;
+  sel.innerHTML='<option value="all">All categories</option>'+all.map(c=>`<option>${c}</option>`).join('');
+  if(all.includes(cur))sel.value=cur;
+}
+
+function renderTxns(){
+  const q=document.getElementById('srchQ').value.toLowerCase();
+  const tF=document.getElementById('fType').value;
+  const cF=document.getElementById('fCatF').value;
+  const wrap=document.getElementById('txnWrap');
+  let list=txns.filter(t=>{
+    if(tF!=='all'&&t.type!==tF)return false;
+    if(cF!=='all'&&t.category!==cF)return false;
+    if(q&&!t.title.toLowerCase().includes(q)&&!t.category.toLowerCase().includes(q)&&!(t.note||'').toLowerCase().includes(q))return false;
+    return true;
+  });
+  document.getElementById('tcnt').textContent=txns.length?`(${txns.length})`:'';
+  if(!txns.length){wrap.innerHTML='<div class="empty"><div class="empty-ico">💳</div><div class="empty-h">Get started by adding your first transaction</div><div class="empty-p">Use the form on the left to record income or expenses. Data is saved in your browser.</div></div>';return;}
+  if(!list.length){wrap.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-h">No results found</div><div class="empty-p">Try different keywords or clear your filters.</div></div>';return;}
+  const rows=list.map(t=>{
+    const d=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'}):'—';
+    const sign=t.type==='income'?'+':'−';
+    const icon=ICONS[t.category]||'💳';
+    const bg=catClr(t.category)+'20';
+    return `<tr><td><div class="ticell"><div class="ticon" style="background:${bg};">${icon}</div><div><div class="tname">${esc(t.title)}</div>${t.note?`<div class="tnote">${esc(t.note)}</div>`:''}</div></div></td><td><span class="chip ${t.type}">${t.type}</span></td><td><span class="cattag">${esc(t.category)}</span></td><td class="tdate">${d}</td><td><div class="tamt ${t.type}">${sign}${fmt(t.amount)}</div></td><td><div class="row-acts"><button class="abtn edit" onclick="openEdit('${t.id}')" title="Edit">✏</button><button class="abtn del" onclick="delTxn('${t.id}')" title="Delete">✕</button></div></td></tr>`;
+  }).join('');
+  wrap.innerHTML=`<table class="ttbl"><thead><tr><th>Transaction</th><th>Type</th><th>Category</th><th>Date</th><th class="ra">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function toast(msg,icon='ℹ'){
+  const a=document.getElementById('tarea');
+  const el=document.createElement('div');el.className='toast';
+  el.innerHTML=`<span style="font-size:14px">${icon}</span><span>${msg}</span>`;
+  a.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},2800);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeEdit();
+  if(e.key==='Enter'&&!document.getElementById('editOv').classList.contains('open')){
+    if(['fTitle','fAmt','fNote'].includes(document.activeElement?.id))addTxn();
+  }
+});
+</script>
+</body>
+</html>

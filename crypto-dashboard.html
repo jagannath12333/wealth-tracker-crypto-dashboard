@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pulse — Crypto Market Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ─── TOKENS ─── */
+:root[data-theme="dark"] {
+  --bg:        #0d0f14;
+  --bg2:       #12151c;
+  --surface:   #181c26;
+  --surface2:  #1e2330;
+  --border:    #252c3d;
+  --border2:   #2e3650;
+  --text:      #e8eaf0;
+  --text2:     #8892aa;
+  --text3:     #555f77;
+  --green:     #00e676;
+  --green-bg:  rgba(0,230,118,.08);
+  --red:       #ff4d6d;
+  --red-bg:    rgba(255,77,109,.08);
+  --accent:    #4c7aff;
+  --accent-bg: rgba(76,122,255,.1);
+  --gold:      #ffd166;
+  --shadow:    0 4px 24px rgba(0,0,0,.4);
+  --shadow2:   0 8px 40px rgba(0,0,0,.6);
+}
+:root[data-theme="light"] {
+  --bg:        #f2f4f8;
+  --bg2:       #ffffff;
+  --surface:   #ffffff;
+  --surface2:  #f7f8fc;
+  --border:    #e2e5ef;
+  --border2:   #cdd2e0;
+  --text:      #111827;
+  --text2:     #6b7280;
+  --text3:     #9ca3af;
+  --green:     #059669;
+  --green-bg:  rgba(5,150,105,.07);
+  --red:       #e11d48;
+  --red-bg:    rgba(225,29,72,.07);
+  --accent:    #3b5bdb;
+  --accent-bg: rgba(59,91,219,.08);
+  --gold:      #d97706;
+  --shadow:    0 2px 12px rgba(0,0,0,.06);
+  --shadow2:   0 8px 32px rgba(0,0,0,.12);
+}
+
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+html { scroll-behavior:smooth; }
+
+body {
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  font-size:14px;
+  transition:background .25s, color .25s;
+}
+
+/* scanline texture in dark mode */
+[data-theme="dark"] body::before {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(255,255,255,.012) 2px, rgba(255,255,255,.012) 4px
+  );
+}
+
+.wrap { position:relative; z-index:1; max-width:1280px; margin:0 auto; padding:0 20px 80px; }
+
+/* ─── HEADER ─── */
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:22px 0 20px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:28px;
+  gap:12px; flex-wrap:wrap;
+}
+
+.brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.brand-icon {
+  width:36px; height:36px; border-radius:9px;
+  background:linear-gradient(135deg, var(--accent), #7c3aed);
+  display:grid; place-items:center;
+  font-size:16px;
+}
+.brand-name {
+  font-family:'Syne',sans-serif; font-size:20px; font-weight:800;
+  letter-spacing:-.5px; color:var(--text);
+}
+.brand-name em { color:var(--accent); font-style:normal; }
+.brand-tag { font-size:10.5px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; margin-top:1px; }
+
+.header-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.live-badge {
+  display:flex; align-items:center; gap:6px;
+  background:var(--green-bg); border:1px solid var(--green);
+  border-radius:20px; padding:5px 11px;
+  font-size:11px; font-weight:600; color:var(--green);
+  letter-spacing:.5px; text-transform:uppercase;
+}
+.live-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--green);
+  animation:pulse 1.8s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.last-updated { font-size:11.5px; color:var(--text3); font-family:'DM Mono',monospace; }
+
+.icon-btn {
+  width:34px; height:34px; border-radius:8px;
+  border:1px solid var(--border2); background:var(--surface);
+  cursor:pointer; display:grid; place-items:center;
+  font-size:15px; color:var(--text2);
+  transition:all .18s; flex-shrink:0;
+}
+.icon-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+
+.refresh-btn {
+  display:flex; align-items:center; gap:7px;
+  background:var(--accent); color:#fff;
+  border:none; border-radius:8px;
+  padding:7px 14px; cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:13px; font-weight:600;
+  transition:all .18s;
+}
+.refresh-btn:hover   { filter:brightness(1.12); }
+.refresh-btn:active  { transform:scale(.98); }
+.refresh-btn.loading .r-icon { animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ─── TICKER STRIP ─── */
+.ticker-wrap {
+  overflow:hidden; background:var(--surface);
+  border:1px solid var(--border); border-radius:10px;
+  margin-bottom:24px; padding:10px 0;
+}
+.ticker-track {
+  display:flex; gap:36px;
+  animation:ticker 30s linear infinite;
+  white-space:nowrap; width:max-content;
+}
+.ticker-track:hover { animation-play-state:paused; }
+@keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.tick-item {
+  display:flex; align-items:center; gap:7px;
+  font-size:12.5px; font-family:'DM Mono',monospace;
+}
+.tick-sym { font-weight:500; color:var(--text2); text-transform:uppercase; }
+.tick-price { color:var(--text); }
+.tick-chg { font-size:11.5px; }
+.tick-chg.up { color:var(--green); }
+.tick-chg.dn { color:var(--red); }
+.tick-sep { color:var(--border2); }
+
+/* ─── STATS BAR ─── */
+.stats-bar {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:14px; margin-bottom:24px;
+}
+.stat-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:16px 18px;
+  transition:border-color .2s, transform .2s;
+  animation:fadeUp .4s ease both;
+}
+.stat-card:hover { border-color:var(--border2); transform:translateY(-1px); }
+.stat-label { font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--text3); margin-bottom:8px; }
+.stat-val { font-family:'DM Mono',monospace; font-size:20px; font-weight:500; color:var(--text); }
+.stat-sub { font-size:11px; color:var(--text3); margin-top:4px; }
+
+/* ─── CONTROLS ─── */
+.controls {
+  display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;
+}
+.search-wrap {
+  flex:1; min-width:200px; position:relative;
+}
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:14px; color:var(--text3); pointer-events:none; }
+.search-input {
+  width:100%; background:var(--surface); border:1px solid var(--border2);
+  border-radius:8px; padding:9px 12px 9px 36px;
+  font-family:'Outfit',sans-serif; font-size:13.5px; color:var(--text);
+  transition:border-color .18s, box-shadow .18s;
+}
+.search-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-bg); }
+.search-input::placeholder { color:var(--text3); }
+
+.tab-group { display:flex; background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.tab {
+  padding:8px 16px; font-size:12.5px; font-weight:600;
+  color:var(--text2); cursor:pointer; border:none; background:transparent;
+  font-family:'Outfit',sans-serif; transition:all .18s;
+  letter-spacing:.2px;
+}
+.tab.active { background:var(--accent); color:#fff; }
+.tab:not(.active):hover { color:var(--text); background:var(--surface2); }
+
+/* ─── ERROR / EMPTY ─── */
+.error-box {
+  background:var(--red-bg); border:1px solid var(--red);
+  border-radius:10px; padding:16px 20px;
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:18px; font-size:13.5px; color:var(--text);
+}
+.error-icon { font-size:20px; flex-shrink:0; }
+.error-box a { color:var(--accent); cursor:pointer; text-decoration:underline; }
+
+.empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; padding:60px 20px; text-align:center;
+}
+.empty-icon { font-size:44px; opacity:.4; }
+.empty-h { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; }
+.empty-p { font-size:13px; color:var(--text2); max-width:260px; line-height:1.6; }
+
+/* ─── CRYPTO TABLE ─── */
+.table-wrap {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; overflow:hidden;
+  box-shadow:var(--shadow);
+}
+table { width:100%; border-collapse:collapse; }
+thead th {
+  padding:12px 16px;
+  font-size:10.5px; font-weight:600; letter-spacing:.9px;
+  text-transform:uppercase; color:var(--text3);
+  border-bottom:1px solid var(--border);
+  text-align:left; background:var(--surface2);
+  cursor:pointer; user-select:none; white-space:nowrap;
+}
+thead th:hover { color:var(--text); }
+thead th.sorted { color:var(--accent); }
+thead th .sort-arrow { margin-left:4px; opacity:.6; }
+thead th:not(:first-child):not(:nth-child(2)) { text-align:right; }
+
+.crypto-row {
+  border-bottom:1px solid var(--border);
+  cursor:pointer; transition:background .15s;
+  animation:fadeIn .3s ease;
+}
+.crypto-row:last-child { border-bottom:none; }
+.crypto-row:hover { background:var(--surface2); }
+
+.crypto-row td { padding:14px 16px; vertical-align:middle; }
+
+/* rank */
+.rank-cell { width:40px; font-family:'DM Mono',monospace; font-size:12px; color:var(--text3); }
+
+/* coin info */
+.coin-cell { min-width:160px; }
+.coin-info { display:flex; align-items:center; gap:10px; }
+.coin-img { width:32px; height:32px; border-radius:50%; background:var(--surface2); flex-shrink:0; }
+.coin-name { font-size:13.5px; font-weight:600; color:var(--text); }
+.coin-sym  { font-size:11px; color:var(--text3); text-transform:uppercase; font-family:'DM Mono',monospace; }
+
+/* price */
+.price-cell { font-family:'DM Mono',monospace; font-size:13.5px; font-weight:500; color:var(--text); text-align:right; }
+
+/* change */
+.change-cell { text-align:right; }
+.chg-pill {
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:'DM Mono',monospace; font-size:12px; font-weight:500;
+  padding:3px 9px; border-radius:20px;
+}
+.chg-pill.up { background:var(--green-bg); color:var(--green); }
+.chg-pill.dn { background:var(--red-bg);   color:var(--red); }
+
+/* mcap / vol */
+.num-cell { font-family:'DM Mono',monospace; font-size:12.5px; color:var(--text2); text-align:right; }
+
+/* sparkline */
+.spark-cell { width:90px; text-align:right; }
+.spark { width:80px; height:32px; }
+
+/* star */
+.star-cell { width:36px; text-align:center; }
+.star-btn {
+  background:none; border:none; cursor:pointer;
+  font-size:16px; color:var(--text3); transition:all .15s;
+  line-height:1;
+}
+.star-btn:hover     { transform:scale(1.2); }
+.star-btn.starred   { color:var(--gold); }
+
+/* ─── SKELETON ─── */
+.skeleton-row td { padding:14px 16px; }
+.skel {
+  background:linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+  border-radius:6px; height:16px;
+}
+.skel.sm { width:40px; }
+.skel.md { width:90px; }
+.skel.lg { width:140px; }
+.skel.xl { width:180px; }
+@keyframes shimmer { to{background-position:-200% 0} }
+
+/* ─── MODAL ─── */
+.overlay {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .22s;
+}
+.overlay.open { opacity:1; pointer-events:auto; }
+.modal {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:16px; padding:0;
+  width:100%; max-width:480px; margin:16px;
+  transform:translateY(14px) scale(.97); transition:transform .22s;
+  box-shadow:var(--shadow2); overflow:hidden;
+}
+.overlay.open .modal { transform:translateY(0) scale(1); }
+
+.modal-header {
+  padding:20px 24px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--surface2);
+}
+.modal-coin { display:flex; align-items:center; gap:12px; }
+.modal-img  { width:42px; height:42px; border-radius:50%; background:var(--bg); }
+.modal-name { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; }
+.modal-sym  { font-size:12px; color:var(--text3); text-transform:uppercase; font-family:'DM Mono',monospace; }
+.modal-close {
+  background:none; border:none; font-size:20px; color:var(--text2);
+  cursor:pointer; transition:color .15s; line-height:1; width:30px; height:30px;
+  display:grid; place-items:center; border-radius:6px;
+}
+.modal-close:hover { color:var(--red); background:var(--red-bg); }
+
+.modal-body { padding:24px; }
+.modal-price {
+  font-family:'DM Mono',monospace; font-size:32px; font-weight:500;
+  color:var(--text); margin-bottom:6px;
+}
+.modal-chg { font-size:14px; font-weight:600; margin-bottom:20px; }
+.modal-chg.up { color:var(--green); }
+.modal-chg.dn { color:var(--red); }
+
+.modal-stats {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px; margin-bottom:20px;
+}
+.modal-stat {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:9px; padding:13px 15px;
+}
+.modal-stat-label { font-size:10.5px; letter-spacing:.8px; text-transform:uppercase; color:var(--text3); margin-bottom:5px; }
+.modal-stat-val   { font-family:'DM Mono',monospace; font-size:14px; font-weight:500; color:var(--text); }
+
+.progress-bar-wrap { margin-bottom:20px; }
+.pb-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--text3); margin-bottom:6px; }
+.pb-track { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.pb-fill  { height:100%; background:linear-gradient(90deg,var(--red),var(--green)); border-radius:3px; transition:width .5s ease; }
+
+.modal-desc { font-size:12.5px; color:var(--text2); line-height:1.7; }
+
+.modal-actions { display:flex; gap:8px; margin-top:20px; }
+.btn-watch {
+  flex:1; padding:10px;
+  border-radius:8px; border:1.5px solid var(--border2);
+  background:transparent; color:var(--text2);
+  font-family:'Outfit',sans-serif; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .18s; display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn-watch:hover { border-color:var(--gold); color:var(--gold); background:rgba(255,209,102,.08); }
+.btn-watch.on    { background:rgba(255,209,102,.1); border-color:var(--gold); color:var(--gold); }
+.btn-visit {
+  flex:1; padding:10px;
+  border-radius:8px; border:none;
+  background:var(--accent); color:#fff;
+  font-family:'Outfit',sans-serif; font-size:13px; font-weight:600;
+  cursor:pointer; text-decoration:none;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:filter .18s;
+}
+.btn-visit:hover { filter:brightness(1.1); }
+
+/* ─── TOAST ─── */
+.toasts { position:fixed; bottom:22px; right:22px; z-index:999; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:9px; padding:11px 16px;
+  font-size:13px; color:var(--text);
+  box-shadow:var(--shadow2);
+  display:flex; align-items:center; gap:9px;
+  animation:slideIn .28s ease; max-width:280px;
+}
+.toast.ok  { border-left:3px solid var(--green); }
+.toast.err { border-left:3px solid var(--red); }
+.toast.inf { border-left:3px solid var(--accent); }
+@keyframes slideIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+
+/* ─── WATCHLIST SECTION ─── */
+.section-title {
+  font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
+  color:var(--text2); letter-spacing:.5px; text-transform:uppercase;
+  margin-bottom:10px;
+  display:flex; align-items:center; gap:8px;
+}
+.section-title span { font-family:'DM Mono',monospace; background:var(--accent-bg); color:var(--accent); padding:2px 8px; border-radius:20px; font-size:11px; }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px) {
+  .stats-bar { grid-template-columns:repeat(2,1fr); }
+  .spark-cell, .num-cell.hide-m, .rank-cell { display:none; }
+}
+@media(max-width:600px) {
+  .stats-bar { grid-template-columns:1fr 1fr; }
+  .modal-stats { grid-template-columns:1fr; }
+  .tab { padding:8px 10px; font-size:11.5px; }
+  header { gap:8px; }
+  .last-updated { display:none; }
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* offline banner */
+.offline-bar {
+  background:var(--red-bg); border:1px solid var(--red);
+  color:var(--red); text-align:center;
+  padding:8px; font-size:12.5px; font-weight:600;
+  display:none; border-radius:8px; margin-bottom:14px;
+}
+.offline-bar.show { display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">Pulse<em>.</em></div>
+        <div class="brand-tag">Crypto Market Dashboard</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div>Live</div>
+      <span class="last-updated" id="lastUpdated">—</span>
+      <button class="icon-btn" id="themeBtn" title="Toggle dark/light mode" onclick="toggleTheme()">🌙</button>
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+        <span class="r-icon">↻</span> Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- OFFLINE BANNER -->
+  <div class="offline-bar" id="offlineBanner">⚠ You appear to be offline. Showing cached data.</div>
+
+  <!-- ERROR BOX -->
+  <div class="error-box" id="errorBox" style="display:none;">
+    <div class="error-icon">⚠️</div>
+    <div id="errorMsg">Unable to fetch data. <a onclick="refreshData()">Try again</a></div>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker-wrap" id="tickerWrap" style="display:none;">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="statsBar" style="display:none;">
+    <div class="stat-card"><div class="stat-label">Total Market Cap</div><div class="stat-val" id="sTotalMcap">—</div><div class="stat-sub" id="sMcapChg">—</div></div>
+    <div class="stat-card"><div class="stat-label">24h Volume</div><div class="stat-val" id="sVol">—</div><div class="stat-sub">across top 10</div></div>
+    <div class="stat-card"><div class="stat-label">Gainers / Losers</div><div class="stat-val" id="sGL">—</div><div class="stat-sub" id="sGLSub">of top 10</div></div>
+    <div class="stat-card"><div class="stat-label">Watchlist</div><div class="stat-val" id="sWatch">0</div><div class="stat-sub">assets tracked</div></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name or symbol…" oninput="applyFilters()"/>
+    </div>
+    <div class="tab-group">
+      <button class="tab active" data-tab="all"       onclick="switchTab('all')">All</button>
+      <button class="tab"        data-tab="watchlist" onclick="switchTab('watchlist')">⭐ Watchlist</button>
+      <button class="tab"        data-tab="gainers"   onclick="switchTab('gainers')">📈 Gainers</button>
+      <button class="tab"        data-tab="losers"    onclick="switchTab('losers')">📉 Losers</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="rank-cell">#</th>
+          <th onclick="sortBy('name')">Coin <span class="sort-arrow" id="sa-name"></span></th>
+          <th onclick="sortBy('price')" style="text-align:right">Price <span class="sort-arrow" id="sa-price"></span></th>
+          <th onclick="sortBy('change')" style="text-align:right">24h % <span class="sort-arrow" id="sa-change"></span></th>
+          <th onclick="sortBy('mcap')" class="hide-m" style="text-align:right">Market Cap <span class="sort-arrow" id="sa-mcap"></span></th>
+          <th class="num-cell hide-m" style="text-align:right">Volume 24h</th>
+          <th class="spark-cell" style="text-align:right">7d</th>
+          <th style="text-align:center">★</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="modal" id="detailModal">
+    <div class="modal-header">
+      <div class="modal-coin">
+        <img class="modal-img" id="mImg" src="" alt=""/>
+        <div>
+          <div class="modal-name" id="mName">—</div>
+          <div class="modal-sym"  id="mSym">—</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-price" id="mPrice">—</div>
+      <div class="modal-chg"   id="mChg">—</div>
+      <div class="modal-stats">
+        <div class="modal-stat"><div class="modal-stat-label">24h High</div><div class="modal-stat-val" id="mHigh">—</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">24h Low</div><div class="modal-stat-val"  id="mLow">—</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Market Cap</div><div class="modal-stat-val" id="mMcap">—</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">Circulating Supply</div><div class="modal-stat-val" id="mSupply">—</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">All-Time High</div><div class="modal-stat-val" id="mAth">—</div></div>
+        <div class="modal-stat"><div class="modal-stat-label">ATH Change</div><div class="modal-stat-val" id="mAthChg">—</div></div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="pb-labels"><span id="pbLow">Low</span><span style="font-size:11px;color:var(--text3)">24h Range</span><span id="pbHigh">High</span></div>
+        <div class="pb-track"><div class="pb-fill" id="pbFill" style="width:50%"></div></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-watch" id="mWatchBtn" onclick="toggleWatchFromModal()">⭐ Add to Watchlist</button>
+        <a class="btn-visit" id="mLink" href="#" target="_blank" rel="noopener">↗ CoinGecko</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ════════════════════════════════════════════
+   STATE MANAGEMENT — Simple Store (Redux-like)
+   ════════════════════════════════════════════ */
+const Store = (() => {
+  const WATCH_KEY = 'pulse_watchlist_v2';
+  const CACHE_KEY = 'pulse_cache_v2';
+
+  let state = {
+    coins:     [],
+    filtered:  [],
+    watchlist: new Set(),
+    loading:   false,
+    error:     null,
+    sortField: 'mcap',
+    sortDir:   'desc',
+    tab:       'all',
+    query:     '',
+    selectedCoin: null,
+  };
+
+  const listeners = [];
+  const subscribe = fn => listeners.push(fn);
+  const notify    = () => listeners.forEach(fn => fn(state));
+
+  function dispatch(action) {
+    switch (action.type) {
+      case 'SET_LOADING':  state.loading = action.val; break;
+      case 'SET_ERROR':    state.error   = action.val; break;
+      case 'SET_COINS':
+        state.coins  = action.coins;
+        state.error  = null;
+        // cache
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), coins:action.coins})); } catch {}
+        break;
+      case 'TOGGLE_WATCH': {
+        const id = action.id;
+        state.watchlist.has(id) ? state.watchlist.delete(id) : state.watchlist.add(id);
+        try { localStorage.setItem(WATCH_KEY, JSON.stringify([...state.watchlist])); } catch {}
+        break;
+      }
+      case 'SET_SORT':   state.sortField = action.field; state.sortDir = action.dir; break;
+      case 'SET_TAB':    state.tab   = action.val; break;
+      case 'SET_QUERY':  state.query = action.val; break;
+      case 'SET_COIN':   state.selectedCoin = action.coin; break;
+    }
+    applyDerivedState();
+    notify();
+  }
+
+  function applyDerivedState() {
+    let list = [...state.coins];
+    // tab filter
+    if (state.tab === 'watchlist') list = list.filter(c => state.watchlist.has(c.id));
+    if (state.tab === 'gainers')   list = list.filter(c => c.price_change_percentage_24h > 0);
+    if (state.tab === 'losers')    list = list.filter(c => c.price_change_percentage_24h < 0);
+    // search
+    const q = state.query.toLowerCase().trim();
+    if (q) list = list.filter(c => c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q));
+    // sort
+    list.sort((a,b) => {
+      let va, vb;
+      if (state.sortField === 'name')   { va=a.name; vb=b.name; }
+      if (state.sortField === 'price')  { va=a.current_price; vb=b.current_price; }
+      if (state.sortField === 'change') { va=a.price_change_percentage_24h; vb=b.price_change_percentage_24h; }
+      if (state.sortField === 'mcap')   { va=a.market_cap; vb=b.market_cap; }
+      if (typeof va === 'string') return state.sortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+      return state.sortDir==='asc'?va-vb:vb-va;
+    });
+    state.filtered = list;
+  }
+
+  function getCache() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const { ts, coins } = JSON.parse(raw);
+      if (Date.now()-ts < 5*60*1000) return coins; // 5-min cache
+    } catch {}
+    return null;
+  }
+
+  function loadWatch() {
+    try { state.watchlist = new Set(JSON.parse(localStorage.getItem(WATCH_KEY)||'[]')); } catch {}
+  }
+
+  return { dispatch, subscribe, getState:()=>state, getCache, loadWatch };
+})();
+
+/* ═══════════════════════════════
+   API SERVICE (abstracted)
+   ═══════════════════════════════ */
+const CryptoService = (() => {
+  const BASE = 'https://api.coingecko.com/api/v3';
+
+  async function getTop10() {
+    const url = `${BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
+    const res = await fetch(url);
+    if (res.status === 429) throw new Error('API rate limit reached. Please wait a moment.');
+    if (!res.ok)            throw new Error(`API error: ${res.status}`);
+    return res.json();
+  }
+
+  return { getTop10 };
+})();
+
+/* ═══════════════════════════════
+   FORMATTERS
+   ═══════════════════════════════ */
+const Fmt = {
+  usd: n => {
+    if (n === null || n === undefined) return '—';
+    if (n >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+    if (n >= 1e9)  return '$' + (n/1e9).toFixed(2)  + 'B';
+    if (n >= 1e6)  return '$' + (n/1e6).toFixed(2)  + 'M';
+    if (n >= 1)    return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return '$' + n.toPrecision(5);
+  },
+  pct: n => {
+    if (n === null || n === undefined) return '—';
+    return (n>=0?'+':'')+n.toFixed(2)+'%';
+  },
+  supply: n => {
+    if (!n) return '—';
+    if (n>=1e9) return (n/1e9).toFixed(2)+'B';
+    if (n>=1e6) return (n/1e6).toFixed(2)+'M';
+    return n.toLocaleString('en-US');
+  },
+  time: () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+};
+
+/* ═══════════════════════════════
+   SPARKLINE RENDERER
+   ═══════════════════════════════ */
+function drawSparkline(canvas, prices, isUp) {
+  if (!canvas || !prices?.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = max-min||1;
+  const pts = prices.map((p,i)=>({
+    x: (i/(prices.length-1))*W,
+    y: H - ((p-min)/range)*H*0.85 - H*0.075
+  }));
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath();
+  pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  const theme = document.documentElement.getAttribute('data-theme');
+  ctx.strokeStyle = isUp
+    ? (theme==='dark'?'#00e676':'#059669')
+    : (theme==='dark'?'#ff4d6d':'#e11d48');
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+
+/* ═══════════════════════════════
+   RENDER FUNCTIONS
+   ═══════════════════════════════ */
+function renderSkeleton() {
+  const body = document.getElementById('tableBody');
+  body.innerHTML = Array.from({length:10}).map(()=>`
+    <tr class="skeleton-row">
+      <td><div class="skel sm"></div></td>
+      <td><div style="display:flex;align-items:center;gap:10px"><div class="skel sm" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div><div><div class="skel lg"></div><div class="skel sm" style="margin-top:5px"></div></div></div></td>
+      <td style="text-align:right"><div class="skel md" style="margin-left:auto"></div></td>
+      <td style="text-align:right"><div class="skel sm" style="margin-left:auto"></div></td>
+      <td style="text-align:right"><div class="skel md" style="margin-left:auto"></div></td>
+      <td style="text-align:right"><div class="skel md" style="margin-left:auto"></div></td>
+      <td></td><td></td>
+    </tr>`).join('');
+}
+
+function renderTable(state) {
+  const body = document.getElementById('tableBody');
+  const { filtered, watchlist } = state;
+
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <div class="empty-icon">${state.tab==='watchlist'?'⭐':'🔍'}</div>
+        <div class="empty-h">${state.tab==='watchlist'?'Your watchlist is empty':'No results found'}</div>
+        <div class="empty-p">${state.tab==='watchlist'?'Star an asset to add it to your watchlist.':'Try a different search term or filter.'}</div>
+      </div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map((c,i) => {
+    const up      = c.price_change_percentage_24h >= 0;
+    const starred = watchlist.has(c.id);
+    return `<tr class="crypto-row" onclick="openDetail('${c.id}')">
+      <td class="rank-cell">${c.market_cap_rank}</td>
+      <td class="coin-cell">
+        <div class="coin-info">
+          <img class="coin-img" src="${c.image}" alt="${c.name}" loading="lazy"/>
+          <div>
+            <div class="coin-name">${c.name}</div>
+            <div class="coin-sym">${c.symbol}</div>
+          </div>
+        </div>
+      </td>
+      <td class="price-cell">${Fmt.usd(c.current_price)}</td>
+      <td class="change-cell">
+        <span class="chg-pill ${up?'up':'dn'}">${up?'▲':'▼'} ${Math.abs(c.price_change_percentage_24h).toFixed(2)}%</span>
+      </td>
+      <td class="num-cell hide-m">${Fmt.usd(c.market_cap)}</td>
+      <td class="num-cell hide-m">${Fmt.usd(c.total_volume)}</td>
+      <td class="spark-cell">
+        <canvas class="spark" width="80" height="32" id="sp-${c.id}"></canvas>
+      </td>
+      <td class="star-cell">
+        <button class="star-btn ${starred?'starred':''}" onclick="event.stopPropagation();toggleWatch('${c.id}')" title="${starred?'Remove from':'Add to'} watchlist">
+          ${starred?'★':'☆'}
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // draw sparklines after render
+  requestAnimationFrame(() => {
+    filtered.forEach(c => {
+      const canvas = document.getElementById('sp-'+c.id);
+      if (c.sparkline_in_7d?.price) drawSparkline(canvas, c.sparkline_in_7d.price, c.price_change_percentage_24h>=0);
+    });
+  });
+}
+
+function renderStats(state) {
+  const { coins } = state;
+  if (!coins.length) return;
+  const totalMcap = coins.reduce((s,c)=>s+c.market_cap,0);
+  const totalVol  = coins.reduce((s,c)=>s+c.total_volume,0);
+  const gainers   = coins.filter(c=>c.price_change_percentage_24h>0).length;
+  const losers    = coins.filter(c=>c.price_change_percentage_24h<0).length;
+
+  document.getElementById('sTotalMcap').textContent = Fmt.usd(totalMcap);
+  document.getElementById('sVol').textContent       = Fmt.usd(totalVol);
+  document.getElementById('sGL').textContent        = `${gainers} / ${losers}`;
+  document.getElementById('sGLSub').textContent     = `gainers / losers`;
+  document.getElementById('sWatch').textContent     = state.watchlist.size;
+  document.getElementById('statsBar').style.display = '';
+}
+
+function renderTicker(coins) {
+  const wrap = document.getElementById('tickerWrap');
+  const track= document.getElementById('tickerTrack');
+  if (!coins.length) return;
+  // duplicate for seamless loop
+  const items = [...coins,...coins].map(c=>{
+    const up = c.price_change_percentage_24h >= 0;
+    return `<div class="tick-item">
+      <span class="tick-sym">${c.symbol}</span>
+      <span class="tick-price">${Fmt.usd(c.current_price)}</span>
+      <span class="tick-chg ${up?'up':'dn'}">${up?'▲':'▼'}${Math.abs(c.price_change_percentage_24h).toFixed(2)}%</span>
+      <span class="tick-sep">|</span>
+    </div>`;
+  }).join('');
+  track.innerHTML = items;
+  wrap.style.display = '';
+}
+
+function renderSortArrows(state) {
+  ['name','price','change','mcap'].forEach(f => {
+    const el = document.getElementById('sa-'+f);
+    if (!el) return;
+    el.textContent = state.sortField===f ? (state.sortDir==='asc'?'↑':'↓') : '';
+  });
+}
+
+/* ═══════════════════════════════
+   MAIN RENDER (subscribe)
+   ═══════════════════════════════ */
+Store.subscribe(state => {
+  if (state.loading && !state.coins.length) { renderSkeleton(); return; }
+  renderTable(state);
+  renderStats(state);
+  renderSortArrows(state);
+  // update modal star if open
+  if (state.selectedCoin) {
+    const starred = state.watchlist.has(state.selectedCoin.id);
+    const btn = document.getElementById('mWatchBtn');
+    if (btn) {
+      btn.textContent = starred ? '★ In Watchlist' : '⭐ Add to Watchlist';
+      btn.classList.toggle('on', starred);
+    }
+    document.getElementById('sWatch').textContent = state.watchlist.size;
+  }
+});
+
+/* ═══════════════════════════════
+   DATA FETCHING
+   ═══════════════════════════════ */
+async function fetchData(useCache=false) {
+  if (useCache) {
+    const cached = Store.getCache();
+    if (cached) { Store.dispatch({type:'SET_COINS',coins:cached}); renderTicker(cached); return; }
+  }
+
+  Store.dispatch({type:'SET_LOADING',val:true});
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  hideError();
+
+  try {
+    const coins = await CryptoService.getTop10();
+    Store.dispatch({type:'SET_COINS',coins});
+    Store.dispatch({type:'SET_LOADING',val:false});
+    renderTicker(coins);
+    document.getElementById('lastUpdated').textContent = 'Updated ' + Fmt.time();
+    toast('Market data refreshed','ok');
+  } catch(err) {
+    Store.dispatch({type:'SET_LOADING',val:false});
+    // try cache fallback
+    const cached = Store.getCache();
+    if (cached) {
+      Store.dispatch({type:'SET_COINS',coins:cached});
+      renderTicker(cached);
+      showError('Using cached data — ' + err.message);
+      toast('Using cached data','inf');
+    } else {
+      showError(err.message || 'Network error. Please check your connection.');
+      renderTable({filtered:[], watchlist:new Set(), tab:'all'});
+    }
+  }
+  btn.classList.remove('loading');
+}
+
+function refreshData() { fetchData(false); }
+
+/* ═══════════════════════════════
+   CONTROLS
+   ═══════════════════════════════ */
+function applyFilters() {
+  Store.dispatch({type:'SET_QUERY', val:document.getElementById('searchInput').value});
+}
+
+function switchTab(tab) {
+  Store.dispatch({type:'SET_TAB',val:tab});
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===tab));
+}
+
+let sortDir = 'desc';
+function sortBy(field) {
+  const state = Store.getState();
+  const newDir = state.sortField===field && state.sortDir==='desc' ? 'asc' : 'desc';
+  Store.dispatch({type:'SET_SORT',field,dir:newDir});
+}
+
+/* ═══════════════════════════════
+   WATCHLIST
+   ═══════════════════════════════ */
+function toggleWatch(id) {
+  const state = Store.getState();
+  const was   = state.watchlist.has(id);
+  Store.dispatch({type:'TOGGLE_WATCH',id});
+  toast(was ? 'Removed from watchlist' : 'Added to watchlist', 'inf');
+}
+
+function toggleWatchFromModal() {
+  const state = Store.getState();
+  if (!state.selectedCoin) return;
+  toggleWatch(state.selectedCoin.id);
+}
+
+/* ═══════════════════════════════
+   DETAIL MODAL
+   ═══════════════════════════════ */
+function openDetail(id) {
+  const state = Store.getState();
+  const coin  = state.coins.find(c=>c.id===id);
+  if (!coin) return;
+  Store.dispatch({type:'SET_COIN',coin});
+
+  const up = coin.price_change_percentage_24h >= 0;
+  document.getElementById('mImg').src       = coin.image;
+  document.getElementById('mImg').alt       = coin.name;
+  document.getElementById('mName').textContent = coin.name;
+  document.getElementById('mSym').textContent  = coin.symbol.toUpperCase();
+  document.getElementById('mPrice').textContent= Fmt.usd(coin.current_price);
+  document.getElementById('mChg').textContent  = Fmt.pct(coin.price_change_percentage_24h) + ' (24h)';
+  document.getElementById('mChg').className    = 'modal-chg '+(up?'up':'dn');
+  document.getElementById('mHigh').textContent = Fmt.usd(coin.high_24h);
+  document.getElementById('mLow').textContent  = Fmt.usd(coin.low_24h);
+  document.getElementById('mMcap').textContent = Fmt.usd(coin.market_cap);
+  document.getElementById('mSupply').textContent=Fmt.supply(coin.circulating_supply)+' '+coin.symbol.toUpperCase();
+  document.getElementById('mAth').textContent  = Fmt.usd(coin.ath);
+  const athChg = coin.ath_change_percentage;
+  document.getElementById('mAthChg').textContent = athChg ? Fmt.pct(athChg) : '—';
+
+  // 24h range progress
+  const low=coin.low_24h, high=coin.high_24h, cur=coin.current_price;
+  const pct = high>low ? ((cur-low)/(high-low))*100 : 50;
+  document.getElementById('pbFill').style.width = Math.max(0,Math.min(100,pct))+'%';
+  document.getElementById('pbLow').textContent  = Fmt.usd(low);
+  document.getElementById('pbHigh').textContent = Fmt.usd(high);
+
+  // watch button
+  const starred = state.watchlist.has(id);
+  const wBtn = document.getElementById('mWatchBtn');
+  wBtn.textContent = starred ? '★ In Watchlist' : '⭐ Add to Watchlist';
+  wBtn.classList.toggle('on', starred);
+
+  // CoinGecko link
+  document.getElementById('mLink').href = `https://www.coingecko.com/en/coins/${id}`;
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  Store.dispatch({type:'SET_COIN',coin:null});
+}
+
+function bgClose(e) { if(e.target===document.getElementById('overlay')) closeModal(); }
+
+/* ═══════════════════════════════
+   DARK MODE
+   ═══════════════════════════════ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme')==='dark'?'light':'dark';
+  html.setAttribute('data-theme',next);
+  document.getElementById('themeBtn').textContent = next==='dark'?'🌙':'☀️';
+  try { localStorage.setItem('pulse_theme',next); } catch {}
+  // redraw sparklines
+  const state = Store.getState();
+  requestAnimationFrame(()=>{
+    state.filtered.forEach(c=>{
+      const canvas=document.getElementById('sp-'+c.id);
+      if(c.sparkline_in_7d?.price) drawSparkline(canvas,c.sparkline_in_7d.price,c.price_change_percentage_24h>=0);
+    });
+  });
+}
+
+/* ═══════════════════════════════
+   TOAST
+   ═══════════════════════════════ */
+function toast(msg, type='inf') {
+  const w = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${{ok:'✓',err:'✗',inf:'i'}[type]||'i'}</span><span>${msg}</span>`;
+  w.appendChild(el);
+  setTimeout(()=>{ el.style.cssText='opacity:0;transition:opacity .25s'; setTimeout(()=>el.remove(),300); },3000);
+}
+
+/* ═══════════════════════════════
+   ERROR HELPERS
+   ═══════════════════════════════ */
+function showError(msg) {
+  const box=document.getElementById('errorBox');
+  document.getElementById('errorMsg').innerHTML = msg+' <a onclick="refreshData()">Try again</a>';
+  box.style.display='flex';
+}
+function hideError() { document.getElementById('errorBox').style.display='none'; }
+
+/* ═══════════════════════════════
+   OFFLINE DETECTION
+   ═══════════════════════════════ */
+function checkOnline() {
+  const banner = document.getElementById('offlineBanner');
+  if (!navigator.onLine) { banner.classList.add('show'); }
+  else { banner.classList.remove('show'); }
+}
+window.addEventListener('online',  ()=>{ checkOnline(); refreshData(); });
+window.addEventListener('offline', checkOnline);
+
+/* ═══════════════════════════════
+   AUTO-REFRESH (60s)
+   ═══════════════════════════════ */
+setInterval(()=>{ if(navigator.onLine) fetchData(false); }, 60000);
+
+/* ═══════════════════════════════
+   KEYBOARD
+   ═══════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') closeModal();
+  if ((e.ctrlKey||e.metaKey) && e.key==='k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  if (e.key==='r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName!=='INPUT') refreshData();
+});
+
+/* ═══════════════════════════════
+   BOOT
+   ═══════════════════════════════ */
+(function boot() {
+  // restore theme
+  try {
+    const saved = localStorage.getItem('pulse_theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme',saved);
+      document.getElementById('themeBtn').textContent = saved==='dark'?'🌙':'☀️';
+    }
+  } catch {}
+
+  Store.loadWatch();
+  checkOnline();
+  renderSkeleton();
+
+  // try cache first for instant load, then fetch fresh
+  fetchData(true);
+  setTimeout(()=>{ if(navigator.onLine) fetchData(false); }, 1500);
+})();
+</script>
+</body>
+</html>
