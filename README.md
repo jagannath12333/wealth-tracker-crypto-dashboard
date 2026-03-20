@@ -128,11 +128,11 @@ open crypto-dashboard.html
 
 ## Running Locally
 
-Both files are **zero-dependency** single HTML files.
+
 
 1. Clone or download the repository
 2. Open either file directly in a browser — no `npm install`, no build step
-3. For the crypto dashboard, ensure you have an internet connection on first load
+3. For the crypto dashboard, have an internet connection on 
 
 ## Contact
 
